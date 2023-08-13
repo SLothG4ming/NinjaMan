@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Shurikan : MonoBehaviour
+public class ShurikanController : MonoBehaviour
 {
     [SerializeField] public float throwspeed = 16f;
     public bool thrown;

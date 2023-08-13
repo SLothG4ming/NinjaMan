@@ -7,18 +7,25 @@ public class DoorController : MonoBehaviour, IInteractable
     [SerializeField] Transform _doorTransform;
     [SerializeField] Collider2D _doorCollider;
     [SerializeField] Transform _doorInteractionTransform;
-    [SerializeField] Transform _upperDoor;
-    [SerializeField] Transform _lowerDoor;
-    [SerializeField] Vector3 _openPosition;
+    [SerializeField] SpriteRenderer _upperDoorSpriteRenderer;
+    [SerializeField] SpriteRenderer _lowerDoorSpriteRenderer;
     [SerializeField] float _closeDelay = 3f;
 
     bool _isDoorOpen = false;
     bool _playerPassedThrough = false;
     private bool _isMoving = false;
 
+    private Vector3 _originalUpperSpritePosition;
+    private Vector3 _originalLowerSpritePosition;
+    private Vector3 _openUpperSpritePosition;
+    private Vector3 _openLowerSpritePosition;
+
     private void Start()
     {
-        _openPosition = _doorTransform.position + _openPosition; // Calculate the open position based on the initial position
+        _originalUpperSpritePosition = _upperDoorSpriteRenderer.transform.localPosition;
+        _originalLowerSpritePosition = _lowerDoorSpriteRenderer.transform.localPosition;
+        _openUpperSpritePosition = _originalUpperSpritePosition + new Vector3(0.3f, 0f, 0f);
+        _openLowerSpritePosition = _originalLowerSpritePosition + new Vector3(0.3f, 0f, 0f);
     }
 
     public void StartInteraction()
@@ -41,17 +48,19 @@ public class DoorController : MonoBehaviour, IInteractable
 
     IEnumerator OpenDoor()
     {
-        Vector3 targetPosition = _openPosition;
-        float step = _doorSpeed * Time.fixedDeltaTime;
+        Vector3 targetUpperPosition = _openUpperSpritePosition;
+        Vector3 targetLowerPosition = _openLowerSpritePosition;
+        float timing = _doorSpeed * Time.fixedDeltaTime;
 
-        while (Vector3.Distance(_doorTransform.position, targetPosition) > 0.01f)
+        while (Vector3.Distance(_upperDoorSpriteRenderer.transform.localPosition, targetUpperPosition) > 0.01f)
         {
-            _doorTransform.position = Vector3.MoveTowards(_doorTransform.position, targetPosition, step);
+            Vector3 upperSpritePosition = _upperDoorSpriteRenderer.transform.localPosition;
+            upperSpritePosition = Vector3.MoveTowards(upperSpritePosition, targetUpperPosition, timing);
+            _upperDoorSpriteRenderer.transform.localPosition = upperSpritePosition;
 
-            // Move the upper and lower door positions along with the main door
-            Vector3 doorOffset = (_doorTransform.position - targetPosition) / 2f;
-            _upperDoor.position = _upperDoor.position + doorOffset;
-            _lowerDoor.position = _lowerDoor.position + doorOffset;
+            Vector3 lowerSpritePosition = _lowerDoorSpriteRenderer.transform.localPosition;
+            lowerSpritePosition = Vector3.MoveTowards(lowerSpritePosition, targetLowerPosition, timing);
+            _lowerDoorSpriteRenderer.transform.localPosition = lowerSpritePosition;
 
             yield return new WaitForFixedUpdate();
         }
@@ -64,24 +73,27 @@ public class DoorController : MonoBehaviour, IInteractable
 
     IEnumerator CloseDoor()
     {
-        Vector3 targetPosition = _doorTransform.position;
-        float step = _doorSpeed * Time.fixedDeltaTime;
+        Vector3 targetUpperPosition = _originalUpperSpritePosition;
+        Vector3 targetLowerPosition = _originalLowerSpritePosition;
+        float timing = _doorSpeed * Time.fixedDeltaTime;
 
-        while (Vector3.Distance(_doorTransform.position, targetPosition) > 0.01f)
+        while (Vector3.Distance(_upperDoorSpriteRenderer.transform.localPosition, targetUpperPosition) > 0.01f)
         {
-            _doorTransform.position = Vector3.MoveTowards(_doorTransform.position, targetPosition, step);
+            Vector3 upperSpritePosition = _upperDoorSpriteRenderer.transform.localPosition;
+            upperSpritePosition = Vector3.MoveTowards(upperSpritePosition, targetUpperPosition, timing);
+            _upperDoorSpriteRenderer.transform.localPosition = upperSpritePosition;
 
-            // Move the upper and lower door positions along with the main door
-            Vector3 doorOffset = (_doorTransform.position - targetPosition) / 2f;
-            _upperDoor.position = _upperDoor.position - doorOffset;
-            _lowerDoor.position = _lowerDoor.position - doorOffset;
+            Vector3 lowerSpritePosition = _lowerDoorSpriteRenderer.transform.localPosition;
+            lowerSpritePosition = Vector3.MoveTowards(lowerSpritePosition, targetLowerPosition, timing);
+            _lowerDoorSpriteRenderer.transform.localPosition = lowerSpritePosition;
 
             yield return new WaitForFixedUpdate();
         }
 
+        Debug.Log("Door closed");
+
         _isDoorOpen = false;
         _doorCollider.enabled = true;
-        Debug.Log("Door closed");
     }
 
     IEnumerator CloseDoorAfterDelay()

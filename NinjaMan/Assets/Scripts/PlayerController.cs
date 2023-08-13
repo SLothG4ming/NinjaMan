@@ -1,20 +1,27 @@
-
-using Unity.VisualScripting;
-using UnityEngine;
 using UnityEngine.InputSystem;
-
-
+using UnityEngine;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 
 public class PlayerController : MonoBehaviour
 {
-    //Input Actions
+    //UI
     /*.....................................................*/
+    [SerializeField] private ShurikenCounter shurikenCounter;
+    [SerializeField] private HealthBar healthBar;
 
+
+
+    private float timeSinceLastDamage = 0f;
+    private float damageInterval = 5f;
+
+    private int shurikenCount = 0;
+    
     //Rigidbody and Animator 
     /*.....................................................*/
     [SerializeField] private Rigidbody2D player2d;
     [SerializeField] private Animator animator;
-   
+
     //Transforms
     /*.....................................................*/
     [SerializeField] private Transform GroundCheck;
@@ -46,11 +53,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float _jumppower = 16f;
     private float _coyoteTimeCounter;
     [SerializeField] private float _coyoteTime = 0.2f;
-   // [SerializeField] private float _aircontrol = 3f;
+    // [SerializeField] private float _aircontrol = 3f;
     [SerializeField] private Vector2 _wallJumpingPower = new(8f, 16f);
     //Wall sliding
     /*.....................................................*/
-  //  [SerializeField] private float _wallSlidingSpeed = 5f;
+    //  [SerializeField] private float _wallSlidingSpeed = 5f;
 
     private float _wallJumpingDirection;
     //Grabbing
@@ -75,7 +82,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private int _currentLife;
     [SerializeField] private int _dmgamout = 0;
     [SerializeField] private float _airspeed = 4f;
-
+    public int MaxLife => _maxlife;
     //Booleans
     /*.....................................................*/
     private bool _isGrounded = true;
@@ -89,13 +96,13 @@ public class PlayerController : MonoBehaviour
     private bool _isDead = false;
     private bool _lockHorizontalMovement = false;
     Collider2D[] hitEnemies;
-   
+
 
     // Start is called before the first frame update
     void Awake()
     {
         animator = GetComponent<Animator>();
-        player2d = GetComponent<Rigidbody2D>();       
+        player2d = GetComponent<Rigidbody2D>();
         WallCheck = GetComponentInChildren<OnCollisionEnter>();
         _currentLife = _maxlife;
     }
@@ -103,8 +110,8 @@ public class PlayerController : MonoBehaviour
     //Update is called once per frame
     void Update()
     {
-       WallSlide();        
-       Flip();
+        WallSlide();
+        Flip();
 
         //Animation
         animator.SetFloat("isRunning", Mathf.Abs(player2d.velocity.x) / _movementspeed);
@@ -113,18 +120,28 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("isWallSliding", _isWallSliding);
         animator.SetBool("isGrabbing", _isGrabbing);
         animator.SetBool("isDead", _isDead);
-        animator.SetBool("isDead", _isDead);
+        
         animator.SetBool("jumpPrepare", _jumpPrepare);
 
     }
-   
+
 
     private void FixedUpdate()
     {
+
+        if (timeSinceLastDamage >= damageInterval)
+        {
+            TakeDamage(20);
+            timeSinceLastDamage = 0f;
+        }
+        else
+        {
+            timeSinceLastDamage += Time.deltaTime;
+        }
         WallGrab();
 
         //Denies the player to move if OnWall 
-       
+
         if (!_lockHorizontalMovement && !_isDead)
         {
             player2d.velocity = new Vector2(_horizontal * _movementspeed * _moveSpeedMultiplier, player2d.velocity.y);
@@ -137,8 +154,9 @@ public class PlayerController : MonoBehaviour
         {
             Landed();
         }
-      
-       
+
+        
+        Debug.Log(_currentLife);
         ////////////////////////////////////////////////////////////////////////////////////////
         //if (WallCheck.OnWall && _isGrabbing || _isWallSliding && //Input weg von der Wand*) 
         ////////////////////////////////////////////////////////////////////////////////////////
@@ -148,7 +166,12 @@ public class PlayerController : MonoBehaviour
         //  }
         ////////////////////////////////////////////////////////////////////////////////////////
     }
-
+    private void UpdateUI()
+    {
+        // Update the health bar UI element
+        healthBar.SetHealth(_currentLife, MaxLife);
+        shurikenCounter.SetShurikenCount(shurikenCount);
+    }
     //Returns horizontal as context Menu & reads its X Value
     public void Move(InputAction.CallbackContext context)
     {
@@ -163,8 +186,8 @@ public class PlayerController : MonoBehaviour
             _isFacingRight = !_isFacingRight;
             Vector3 localScale = transform.localScale;
             localScale.x *= -1f;
-            transform.localScale = localScale;            
-        }        
+            transform.localScale = localScale;
+        }
     }
 
     //Lowers movementspeed by _movementSpeedMultiplier        
@@ -185,31 +208,31 @@ public class PlayerController : MonoBehaviour
     {
         return Physics2D.OverlapCircle(GroundCheck.position, _groundCheckRadius, whatIsGround);
     }
-    
+
 
     //Resets the number of jumps done
     private void Landed()
     {
         _numberOfJumps = 0;
         _lockHorizontalMovement = false;
-        
+
     }
 
     private bool IsFalling()
     {
-        
-        if (!_isGrounded && player2d.velocity.y < 0f) 
-        
-            {
+
+        if (!_isGrounded && player2d.velocity.y < 0f)
+
+        {
             _isFalling = true;
         }
-            else
+        else
         {
             _isFalling = false;
         }
-        return  _isFalling;
+        return _isFalling;
     }
-   
+
     // walljumping fixen  door fixen 
     //Method for jumping
 
@@ -224,7 +247,7 @@ public class PlayerController : MonoBehaviour
                 _isJumping = true;
                 _lockHorizontalMovement = false;
                 _numberOfJumps++;
-                
+
             }
             if (_isWallSliding)
             {
@@ -234,19 +257,19 @@ public class PlayerController : MonoBehaviour
             if (!_isGrounded && WallCheck.OnWall)
             {
                 _lockHorizontalMovement = false;
-                _numberOfJumps =0 ;
+                _numberOfJumps = 0;
                 Debug.Log("isWalljumping");
-                player2d.velocity = new Vector2( _wallJumpingPower.x, _wallJumpingPower.y ) * _wallJumpingDirection;
-                
+                player2d.velocity = new Vector2(_wallJumpingPower.x, _wallJumpingPower.y) * _wallJumpingDirection;
+
             }
         }
         if (context.canceled && !_isGrounded && player2d.velocity.y > 0f)
         {
             _coyoteTimeCounter = 0f;
-           
+
             _isJumping = false;
             player2d.velocity = new Vector2(player2d.velocity.x * _airspeed, player2d.velocity.y * 0.1f);
-           
+
         }
     }
 
@@ -263,7 +286,7 @@ public class PlayerController : MonoBehaviour
         }
         return _coyoteTimeCounter;
     }
-    
+
 
 
     //Handels the WallGrab 
@@ -302,7 +325,7 @@ public class PlayerController : MonoBehaviour
             _timeSinceLastGrab = 0f;
         }
     }
-  
+
     //WallSlide
     /// <summary>
     /// Sets _isWallSliding condition and clamps the players y velocity 
@@ -361,15 +384,17 @@ public class PlayerController : MonoBehaviour
     /// <param name="context"></param>
     public void Shurikan(InputAction.CallbackContext context)
     {
-        if (context.performed && _curKnifeStock <= _maxKnifeStock )
+        if (context.performed && _curKnifeStock <= _maxKnifeStock)
         {
             animator.SetTrigger("isThrowing");
             GameObject mProjectile = Instantiate(Projectile, Muzzle.position, Muzzle.rotation);
             mProjectile.transform.parent = GameObject.Find("GameManager").transform;
             mProjectile.GetComponent<Renderer>().sortingLayerName = "Player";
-           // _timeSinceLastThrow += Time.deltaTime;
+            // _timeSinceLastThrow += Time.deltaTime;
             _curKnifeStock--;
+            shurikenCount = _curKnifeStock;
 
+            UpdateUI();
             ////////////////////////////////////////////////////////////////////////////////////////
             //NEED A DIFFERENT OVERLAP HERE 
             hitEnemies = Physics2D.OverlapCircleAll(Muzzle.position, throwRange, whatIsEnemy);
@@ -381,7 +406,7 @@ public class PlayerController : MonoBehaviour
                 Debug.Log("We hit" + enemy.name);
             }
         }
-      
+
 
     }
 
@@ -390,113 +415,33 @@ public class PlayerController : MonoBehaviour
     /// Returns Death Value
     /// </summary>
     /// <returns></returns>
-    private bool Dead()
+    private void Dead()
     {
-        return _isDead = true;
+        _isDead = true;
     }
+
+
+
+
+
+
 
     //Damage 
     /// <summary>
     /// Reduces Life until Dead and sets Animation Trigger "isHurt". 
     /// </summary>
     /// <param name="damage"></param>
-    private void TakeDamge(int damage)
+    private void TakeDamage(int damage)
     {
         _currentLife -= damage;
         animator.SetTrigger("isHurt");
 
         if (_currentLife <= 0)
         {
+            _currentLife = 0;
             Dead();
         }
     }
 
 
 }
-
-
-
-
-/*  Unity CheatSheet  */
-//
-//
-//
-//
-/*MonoBehaviour.Start() */
-/*----------------------------*/
-//
-//Start is called on the frame when a script is enabled just beforeany of the Update methods are called the first time.
-//Start is called exactly once in the lifetime of the script.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-//MonoBehaviour.Awake()
-/*----------------------------*
-//Awake is called when an enabled script instance is being loaded.
-//Awake is called either when an active GameObject that contains the script is initialized when a Scene loads, or when a previously inactive
-//GameObject is set to active, or after a GameObject created with Object.Instantiate is initialized.
-//Use Awake to initialize variables or states before the application starts.
-//Awake is called even if the script is a disabled component of an active GameObject.
-//Awake can not act as a coroutine.
-//Use Awake instead of the constructor for initialization, as the serialized state of the component is undefined at construction time. Awake is called once, just like the constructor.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-//MonoBehaviour.OnEnable()
-/*----------------------------*\
-//This function is called when the object becomes enabled and active.
-//Because this function is executed when the object is enabled, it will be executed whenever entering the Play Mode (with the object enabled).
-/*........................................................................................................................................*/
-//
-//
-//
-//
-//MonoBehaviour.OnDisable()
-/*----------------------------*
-//This function is called when the behaviour becomes disabled.
-//
-/7This is also called when the object is destroyed and can be used for any cleanup code.
-// When scripts are reloaded after compilation has finished, OnDisable will be called, followed by an OnEnable after the script has been loaded.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-/*MonoBehaviour.LateUpdate() */
-/*----------------------------*/
-//
-//LateUpdate is called every frame, if the Behaviour is enabled.
-//LateUpdate is called after all Update functions have been called. This is useful to order script execution.
-//For example a follow camera should always be implemented in LateUpdate because it tracks objects that might have moved inside Update.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-///*MonoBehaviour.Update() */
-//Update is called every frame, if the MonoBehaviour is enabled.
-//
-//Update is the most commonly used function to implement any kind of game script. Not every MonoBehaviour script needs Update.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-/*MonoBehaviour.FixedUpdate() */
-/*----------------------------*/
-//
-//Compute Physics system calculations after FixedUpdate. 0.02 seconds (50 calls per second) is the default time between calls. Use Time.fixedDeltaTime to access this value.
-//Alter it by setting it to your preferred value within a script, or, navigate to Edit > Settings > Time > Fixed Timestep and set it there.
-//Use FixedUpdate when using Rigidbody. Set a force to a Rigidbody and it applies each fixed frame.
-//FixedUpdate occurs at a measured time step that typically does not coincide with MonoBehaviour.Update.
-/*........................................................................................................................................*/
-//
-//
-//
-//
-
-
