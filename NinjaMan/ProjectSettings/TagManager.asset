@@ -3,7 +3,12 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Enemy
+  - LifeUp
+  - Points
+  - IgnoreCollision
+  - Pickup
   layers:
   - Default
   - TransparentFX
@@ -15,9 +20,9 @@ TagManager:
   - Wall
   - Enemy
   - WallCheck
-  - 
-  - 
-  - 
+  - Player
+  - Ghost
+  - Points
   - 
   - 
   - 
@@ -40,4 +45,7 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: MenuSelection
+    uniqueID: 3163498879
     locked: 0
